@@ -1,14 +1,6 @@
-######################################################################
-###                                                                ###    
-###                Micro Rep Analysis - Subcell Allocation         ###
-###                        Functions                               ###
-###                Modified on 14 Oct 2016 by Xiaoyu               ###
-###                                                                ###
-######################################################################
 
-# Pass functions - used inside subcell allocation function
+
 pass_function <- function(subcell, cell){
-  ## subcell and cell are data.table
   subcell[, Allocated_SS_Retian := ifelse(Target.SS_cell==min_Retain_SS_cell, min_Retain_SS
                                           , ifelse(min_Retain_SS > Allocated_SS_prop, min_Retain_SS, Allocated_SS_prop))][
                                             , Final_Subcell_Allocation := round(Allocated_SS_Retian, 0)]
@@ -28,7 +20,7 @@ pass_function <- function(subcell, cell){
 }
 
 
-# Subcell Allocation function
+
 allocation_function <- function(subcell, cell){
   ## subcell and cell are data.table
   cell[, ':='(Diff = Target.SS_cell - Final_Subcell_Allocation_cell
@@ -39,10 +31,7 @@ allocation_function <- function(subcell, cell){
   ft_max <- max(cell$ft)
   
   #####################################################################
-  
-  ### First Pass
-  #   ### Put Adjusted TargSS same as Target SS to start with
-  #   cell[, Adjusted.Target.SS_cell := Target.SS_cell]
+
   cell[, Adjust_TSS_iterator := Adjusted.Target.SS_cell + Diff][
     , Adjusted.Target.SS_cell := Adjust_TSS_iterator]
   
@@ -185,17 +174,14 @@ allocation_function <- function(subcell, cell){
 }
 
 
-# Sample Rotation function
+
 rotation_function <- function(subcell, cell, pvalue, mbd_rotation){
-  ## subcell and cell are data.table
   
-  ## Keep a copy of the original min Retain SS
+
   subcell[, min_Retain_SS_org0 := min_Retain_SS][
     , min_Retain_SS_org := min_Retain_SS]     # set min Retain SS after sample rotation as min Retain SS to start with
   
-  ## flag cells to perform sample rotation
-  ### Case 1: mbd_rotation = NULL (no MBD(s) is selected by user),
-  ### automatically run sample rotation on recommended cells 
+
   if(is.null(mbd_rotation)){
     
     chisq_ck_cell <- unique(subcell[sample_rotation==1, Cell])
@@ -203,14 +189,11 @@ rotation_function <- function(subcell, cell, pvalue, mbd_rotation){
     #### subcell with sample rotation flag
     chisq_ck_subcell <- subcell[sample_rotation==1]
   }
-  
-  ### Case 2: mbd_rotation != NULL (some MBD(s) is selected by user to run sample rotation,
-  ### run sample rotation on cells with pvalue of Chi-Sqr test < pvaules defined by user on 
-  ### selected MBD(s)
+  )
   if(!is.null(mbd_rotation)){
     
     chisq_ck_cell <- unique(subcell[(mbd%in%mbd_rotation)&(Final_Chi_Test<pvalue), Cell])
-    #### subcell with sample rotation flag
+
     chisq_ck_subcell <- subcell[(mbd%in%mbd_rotation)&(Final_Chi_Test<pvalue)]
   }
   
@@ -223,15 +206,10 @@ rotation_function <- function(subcell, cell, pvalue, mbd_rotation){
     , by = i
     ]
   
-  # for(i in chisq_ck_cell){
-  #   
-  #   chisq_ck_subcell_i <- chisq_ck_subcell[Cell==as.character(i)]
-  #   subcell_i <- chisq_ck_subcell_i[(Final_Chi_Sqr_Build==max(Final_Chi_Sqr_Build))&(min_Retain_SS>Final_Exp_SS), Subcell] 
-  #   subcell[Subcell%in%subcell_i, min_Retain_SS:=min_Retain_SS_org-1]
-  # }
+
   
   if(sum(subcell$min_Retain_SS_org>subcell$min_Retain_SS)>0){
-    #### Chi Square Test
+
     subcell[,min_Retain_SS_cell := sum(min_Retain_SS),by=Cell][
       , Allocated_SS_Retian := ifelse(Target.SS_cell==min_Retain_SS_cell, min_Retain_SS
                                       , ifelse(min_Retain_SS>Allocated_SS_prop, min_Retain_SS, Allocated_SS_prop))][
@@ -247,19 +225,18 @@ rotation_function <- function(subcell, cell, pvalue, mbd_rotation){
     
     cell <- merge(cell, Final, by = "Cell", all.x = T)
     
-    #### Compute Final_Chi_Test
+
     cell[, Final_Chi_Test := NULL][
       , Final_Chi_Test := ifelse (Count_of_Subcell_cell>1&Final_Subcell_Allocation_cell>0
                                   , 1-pchisq(Final_Chi_Sqr_Build_cell, df=Count_of_Subcell_cell-1, lower.tail=T), 0)]
-    
-    #### Update Final_Chi_Test in subcell
+
     if("Final_Chi_Test"%in%names(subcell)){
       subcell[,  Final_Chi_Test := NULL]
     } 
     subcell <- merge(subcell, cell[, list(Cell, Final_Chi_Test)], by = "Cell")
   }
   
-  #### Update min_Retain_SS_cell in cell
+
   cell[, min_Retain_SS_cell := NULL]
   cell <- merge(cell, unique(subcell[, list(Cell, min_Retain_SS_cell)]), by="Cell", all=F)
   subcell <- subcell
@@ -268,7 +245,7 @@ rotation_function <- function(subcell, cell, pvalue, mbd_rotation){
 }
 
 
-# Output of Chi-Square Test in Shiny
+
 output_chisq_func <- function(output_chisq, pvalue){
   
   output_chisq <- as.data.frame(output_chisq)
@@ -293,7 +270,7 @@ output_chisq_func <- function(output_chisq, pvalue){
 }
 
 
-# Create Cell Style
+
 pvalue_style <- function(wb){
   
   ## if p-value <0.01, highlighted in red; if p-value 0.05-0.1, highlighted in yellow
@@ -313,7 +290,7 @@ pvalue_style <- function(wb){
 }
 
 
-# Cell highlight function
+
 highlight_func <- function(wb, data, colIndex, pvalue, pvaluestyle, sheetname){
   data <- as.data.frame(data)
   rowIndex <- which(data[,colIndex] < pvalue) + 1
